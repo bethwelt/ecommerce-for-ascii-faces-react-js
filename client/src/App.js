@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import 'bootstrap/dist/css/bootstrap.css';
 import './Styles.css';
 
 class App extends Component {
@@ -9,7 +10,7 @@ class App extends Component {
     this.state = {
       error: false,
       hasMore: true,
-      limit:50,
+      limit:24,
       isLoading: false,
       products:[],
       ads:20,
@@ -28,11 +29,9 @@ class App extends Component {
         },
       } = this;
 
-  
+  //check if the user reached the bottom of apage..
       if (error || isLoading || !hasMore) return;
-      if (
-        window.innerHeight + document.documentElement.scrollTop === document.documentElement.offsetHeight
-      ) {
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight)  {
         //increment page number by 1.
         this.setState({ page: this.state.page+1 });
         //load more products based on the limit assign and page.
@@ -50,30 +49,25 @@ class App extends Component {
     //get page number and assign the limite
     const page = this.state.page;
     const limit = this.state.limit;
-
-    //const ad  = [];
-     let ad ={
-      face: document.write('<img class="ad" src="http://localhost:3000/ads/?r=' + Math.floor(Math.random()*1000) + '"/>'),
-      id: Math.floor(Math.random()*1000),
-      price: "",
-      size: "",
-      date: "",
-      }
-    this.state.products.splice(20,0,ad);
-
-    //   this.state.products.splice(this.state.ad,0,document.write('<img class="ad" src="http://localhost:3000/ads/?r=' + Math.floor(Math.random()*1000) + '"/>'));
-this.setState({ isLoading: true }, () => {
+      //generate ads randomly
+    const rand = Math.floor(Math.random()*1000);
+    let url =`http://localhost:3000/ads/?r=${rand}`;
+    //insert ad to the product list at position 20 automatically
+    this.state.products.splice(this.state.ads,0,{id:Math.floor(Math.random()*1000),img:url,date: new Date()})
+    //call the api  and set state white pushing the new array to the list
+    this.setState({ isLoading: true }, () => {
       fetch(`http://localhost:3000/products?_page=${page}&_limit=${limit}`)
       .then(res => res.json())
       .then(result =>
         this.setState({ 
            products:this.state.products.concat(result),
             hasMore: (this.state.products.length < this.state.products.concat(result).length),
+            ads: this.state.ads+20,
             isLoading: false,
             total:this.state.products.length+limit,
           }));
        });
-    
+
      
   }
   
@@ -82,11 +76,14 @@ this.setState({ isLoading: true }, () => {
   
   //Get sort parameter price,id,size
     const sort = event.target.value;
-     //insert ad to the product list at position 20
-    this.state.products.splice(20,0,[{id:document.write('<img class="ad" src="http://localhost:3000/ads/?r=' + Math.floor(Math.random()*1000) + '"/>')}]);
+
     //set or refresh the array
     this.setState({ products:[]});
-    //   this.state.products.splice(this.state.ad,0,document.write('<img class="ad" src="http://localhost:3000/ads/?r=' + Math.floor(Math.random()*1000) + '"/>'));
+    //generate ads randomly
+    const rand = Math.floor(Math.random()*1000);
+    let url =`http://localhost:3000/ads/?r=${rand}`;
+    //insert ad to the product list at position 20 automatically
+    this.state.products.splice(this.state.ads,0,{id:Math.floor(Math.random()*1000), img:url, date: new Date()})
     this.setState({ isLoading: true }, () => {
       //fetch sorted array
       fetch(`http://localhost:3000/products?_sort=${sort}`)
@@ -112,10 +109,6 @@ this.setState({ isLoading: true }, () => {
     let min =("0"+(date.getMinutes())).slice(-2);
     let sec =("0"+(date.getSeconds())).slice(-2);
 
-    //let str =date.getFullYear()+"/"+month+"/"+day;
-    //,"+hours+":"+min;
-   
-
     //convert current date time to string 
 
     var date1 =new Date(new Date());
@@ -125,15 +118,13 @@ this.setState({ isLoading: true }, () => {
     let min1 =("0"+(date1.getMinutes())).slice(-2);
     let sec1 =("0"+(date1.getSeconds())).slice(-2);
 
-    //let str1 =date1.getFullYear()+"/"+month1+"/"+day1;
-
      //get the total seconds
       let y =(date1.getFullYear()-date.getFullYear())*86400;
       let m = (month1 - month)*86400;
-      let d = (day1-day)*84600;
-      let h = (hours1 -hours)*3600;
-      let mi = (min1 -min)*60;
-      let secs = (sec1- sec);
+      let d = (day1- day)*84600;
+      let h = (hours1 - hours)*3600;
+      let mi = (min1 - min)*60;
+      let secs = (sec1 - sec);
       var seconds = y+m+d+h+mi+secs;
 
     //change seconds to a positive value if negative
@@ -192,9 +183,8 @@ this.setState({ isLoading: true }, () => {
   }
 
   render() {
-  const { error, hasMore, isLoading, products} = this.state;
 
- console.log(products);
+  const { error, hasMore, isLoading, products,ads} = this.state;
    
  return (
 
@@ -210,13 +200,19 @@ this.setState({ isLoading: true }, () => {
     </div>
   <div className="items">
  
-        { products.map(product => (
-
+        {products.length === 0 ? <div className="item">No products on this catalogue</div> :
+          products.map(product => (
+             <div>
+               {
            <div className="item" key={product.id}>
-          
+           {product.img ?
+            <div className="product-img">
+              <img src={product.img}></img>
+            </div>:
             <div className="product-img">
               {product.face}
             </div>
+            }
             <div className="product-details">
               <h1 id="product-name"> Size:{product.size}</h1>
               <h4 id="product-description">Posted:{this.ConvertDate(product.date)}</h4>
@@ -227,10 +223,17 @@ this.setState({ isLoading: true }, () => {
             </div>
             <div className="button"><button>Buy Now</button></div>
           </div>
+        }
+         
+             </div>
         ))
       }
+   
         {isLoading &&
-          <div className="loader"><p></p></div>
+        <div className="content">
+          {/* <div className="loader"></div> */}
+          <div class="loading">Loading&#8230;</div>
+          </div>
         }
 
          {error &&
